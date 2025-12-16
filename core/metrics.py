@@ -15,7 +15,6 @@ class PerformanceTracker:
         avg_write = sum(self.write_times) / len(self.write_times) if self.write_times else 0
         total_time = sum(self.read_times) + sum(self.write_times)
         total_iops = self.total_ops / total_time if total_time > 0 else 0
-
         return {
             "RAID Type": raid_type,
             "Read Time": round(avg_read, 4),

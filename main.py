@@ -12,7 +12,6 @@ from core.raid.raid5 import run_raid5
 from core.raid.raid6 import run_raid6
 from core.raid.recovery import simulate_failure_and_recovery
 
-
 def run_simulation(file_path, raid_type):
     lines = read_log_file(file_path)
     records = parse_logs(lines)
@@ -30,19 +29,16 @@ def run_simulation(file_path, raid_type):
     recovery_time, file_size = simulate_failure_and_recovery(records, tracker)
     metrics = tracker.finalize(recovery_time, raid_type)
 
-    # Optional CSV export with meaningful name
     base_name = os.path.splitext(os.path.basename(file_path))[0]
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     csv_filename = f"raid_performance_{raid_type}_{base_name}_{timestamp}.csv"
     csv_path = os.path.join(tempfile.gettempdir(), csv_filename)
     export_csv(metrics, csv_path)
 
-    # Include daily averages in displayed metrics
     display_metrics = metrics.copy()
     display_metrics["daily_avg"] = analysis.get("daily_avg", {})
 
     return display_metrics, csv_path, recovery_time, file_size
-
 
 def run_simulation_series(file_path, raid_type, step=5):
     lines = read_log_file(file_path)
@@ -52,7 +48,6 @@ def run_simulation_series(file_path, raid_type, step=5):
     for size in range(step, len(lines) + 1, step):
         subset = lines[:size]
         records = parse_logs(subset)
-
         analysis = analyze_io(records)
         tracker = PerformanceTracker(analysis["total_ops"])
 
@@ -70,7 +65,6 @@ def run_simulation_series(file_path, raid_type, step=5):
         recovery_times.append(recovery_time)
 
     return file_sizes, recovery_times
-
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--ui":
