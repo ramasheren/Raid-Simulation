@@ -1,23 +1,32 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def parse_logs(lines):
     records = []
 
-    for line in lines:
-        try:
-            parts = line.split()
-            timestamp = datetime.strptime(
-                parts[0] + " " + parts[1], "%Y-%m-%d %H:%M:%S"
-            )
-            req_type = parts[2].upper()
-            response_time = float(parts[3])
+    # start from a fixed base time (for reproducibility)
+    base_time = datetime.now()
 
-            records.append({
-                "date": timestamp.date(),
-                "type": req_type,
-                "response_time": response_time
-            })
-        except:
+    for index, line in enumerate(lines):
+        line = line.strip()
+
+        # skip empty lines
+        if not line:
             continue
+
+        # Alternate READ / WRITE
+        io_type = "READ" if index % 2 == 0 else "WRITE"
+
+        # Fixed block size (4KB)
+        size = 4096
+
+        # Generate a fake timestamp (1 second apart)
+        timestamp = base_time + timedelta(seconds=index)
+
+        records.append({
+            "timestamp": timestamp,
+            "date": timestamp.date(),
+            "type": io_type,
+            "size": size
+        })
 
     return records

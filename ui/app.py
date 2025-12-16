@@ -1,40 +1,46 @@
 import gradio as gr
-from main import run_simulation
-import tempfile
+import matplotlib.pyplot as plt
 
-results = []
+from main import run_simulation, run_simulation_series
 
-def run(file, raid):
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
-            tmp.write(file.read())
-            tmp_path = tmp.name
 
-        metrics, recovery_time, file_size = run_simulation(tmp_path, raid)
+def run_ui(file, raid_type):
+    # Single run (metrics)
+    metrics, recovery_time, file_size = run_simulation(file.name, raid_type)
 
-        results.append((file_size, recovery_time))
-        points = [{"x": fs, "y": rt} for fs, rt in results]
+    # Series run (for line plot)
+    sizes, times = run_simulation_series(file.name, raid_type)
 
-        return metrics, points
+    # Plot
+    fig, ax = plt.subplots()
+    ax.plot(sizes, times, marker="o")
+    ax.set_xlabel("File Size (Records)")
+    ax.set_ylabel("Recovery Time (seconds)")
+    ax.set_title("Recovery Time vs File Size")
 
-    except Exception as e:
-        return {"error": str(e)}, []
+    return metrics, fig
 
-with gr.Blocks() as app:
-    gr.Markdown("# RAID Log File Analyzer")
 
-    file_input = gr.File(file_types=[".txt"], label="Upload Log File")
-    raid_choice = gr.Dropdown(["RAID1", "RAID5", "RAID6"], value="RAID5", label="Select RAID Type")
-    run_btn = gr.Button("Run Simulation")
+def launch_ui():
+    with gr.Blocks(title="RAID Log Analyzer") as demo:
+        gr.Markdown("## Log File Analyzer & RAID Data Archiver")
 
-    metrics_output = gr.JSON(label="Performance Metrics")
-    chart_output = gr.LinePlot(label="Recovery Time vs File Size")
+        file_input = gr.File(label="Upload .txt Log File")
+        raid_choice = gr.Radio(
+            ["RAID1", "RAID5", "RAID6"],
+            label="Select RAID Type",
+            value="RAID5"
+        )
 
-    run_btn.click(
-        run,
-        inputs=[file_input, raid_choice],
-        outputs=[metrics_output, chart_output]
-    )
+        run_button = gr.Button("Run Simulation")
 
-app.launch()
+        metrics_output = gr.JSON(label="Performance Metrics")
+        plot_output = gr.Plot(label="Recovery Time vs File Size")
 
+        run_button.click(
+            run_ui,
+            inputs=[file_input, raid_choice],
+            outputs=[metrics_output, plot_output]
+        )
+
+    demo.launch()

@@ -1,8 +1,5 @@
 def read_log_file(file_path):
-    lines = []
-    with open(file_path, "r") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                lines.append(line)
-    return lines
+    file_path = str(file_path)
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip()]
