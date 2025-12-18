@@ -18,7 +18,6 @@ from core.raid.recovery import simulate_failure_and_recovery
 def run_simulation(file_path, raid_type, step=5):
     lines = read_log_file(file_path)
     records = parse_logs(lines)
-
     analysis = analyze_io(records)
     tracker = performance_tracker(analysis["total_ops"])
 
@@ -37,14 +36,11 @@ def run_simulation(file_path, raid_type, step=5):
         tempfile.gettempdir(),
         f"raid_performance_{raid_type}_{base}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     )
-
     export_csv(metrics, csv_path)
 
     display_metrics = metrics | {"daily_avg": analysis.get("daily_avg", {})}
 
-    sizes = []
-    times = []
-
+    sizes, times = [], []
     for size in range(step, len(lines) + 1, step):
         sub_records = parse_logs(lines[:size])
         analysis = analyze_io(sub_records)
