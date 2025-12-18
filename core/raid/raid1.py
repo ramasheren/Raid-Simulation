@@ -32,3 +32,4 @@ def run_raid1(records, tracker):
 
     for t in read_threads:
         t.join()
+

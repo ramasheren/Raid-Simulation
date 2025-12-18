@@ -40,3 +40,4 @@ def run_raid5(records, tracker, disks=3):
 
     for t in read_threads:
         t.join()
+

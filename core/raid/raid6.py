@@ -35,3 +35,4 @@ def run_raid6(records, tracker, data_disks=4, parity_disks=2):
 
     for t in read_threads:
         t.join()
+        
