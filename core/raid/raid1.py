@@ -1,35 +1,31 @@
-import time
 import threading
+import time
 
-def _write_mirror(block, tracker):
-    start = time.time()
-    time.sleep(0.001 * len(block))
-    tracker.track_write(time.time() - start)
+def _write_block(block, tracker, penalty=2):
+    for _ in range(penalty):
+        delay = 0.0002 * len(str(block))
+        time.sleep(delay)
+        tracker.track_write(delay)
+        tracker.total_ops += 1
 
-def _read_disk(block, tracker):
-    start = time.time()
-    time.sleep(0.0005 * len(block))
-    tracker.track_read(time.time() - start)
+def _read_block(block, tracker):
+    delay = 0.0001
+    time.sleep(delay)
+    tracker.track_read(delay)
+    tracker.total_ops += 1
 
 def run_raid1(records, tracker):
-    blocks = [str(r).encode() for r in records]
     threads = []
-
-    for block in blocks:
-        for _ in range(2):
-            t = threading.Thread(target=_write_mirror, args=(block, tracker))
-            t.start()
-            threads.append(t)
-
+    for r in records:
+        t = threading.Thread(target=_write_block, args=(r, tracker))
+        t.start()
+        threads.append(t)
     for t in threads:
         t.join()
-
-    read_threads = []
-    for block in blocks:
-        t = threading.Thread(target=_read_disk, args=(block, tracker))
+    threads = []
+    for r in records:
+        t = threading.Thread(target=_read_block, args=(r, tracker))
         t.start()
-        read_threads.append(t)
-
-    for t in read_threads:
+        threads.append(t)
+    for t in threads:
         t.join()
-
