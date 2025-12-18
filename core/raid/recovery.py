@@ -1,17 +1,17 @@
 import time
 import threading
 
-def _recover_block(tracker):
-    start = time.time()
+def _recover_worker():
     time.sleep(0.02)
-    tracker.track_read(time.time() - start)
 
 def simulate_failure_and_recovery(records, tracker):
     start = time.time()
     threads = []
 
-    for _ in range(len(records) // 5 + 1):
-        t = threading.Thread(target=_recover_block, args=(tracker,))
+    workers = max(1, len(records) // 5)
+
+    for _ in range(workers):
+        t = threading.Thread(target=_recover_worker)
         t.start()
         threads.append(t)
 
@@ -19,6 +19,6 @@ def simulate_failure_and_recovery(records, tracker):
         t.join()
 
     recovery_time = time.time() - start
-    file_size = len(records)
+    tracker.track_read(recovery_time)
 
-    return recovery_time, file_size
+    return recovery_time, len(records)

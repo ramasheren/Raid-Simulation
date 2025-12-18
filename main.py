@@ -15,22 +15,29 @@ from core.raid.raid6 import run_raid6
 from core.raid.recovery import simulate_failure_and_recovery
 
 
-def run_simulation(file_path, raid_type, step=5):
-    lines = read_log_file(file_path)
+RAID_RUNNERS = {
+    "RAID1": run_raid1,
+    "RAID5": run_raid5,
+    "RAID6": run_raid6,
+}
 
+
+def run_once(lines, raid_type):
     records = parse_logs(lines)
     analysis = analyze_io(records)
     tracker = performance_tracker(analysis["total_ops"])
 
-    if raid_type == "RAID1":
-        run_raid1(records, tracker)
-    elif raid_type == "RAID5":
-        run_raid5(records, tracker)
-    elif raid_type == "RAID6":
-        run_raid6(records, tracker)
-
-    recovery_time, _ = simulate_failure_and_recovery(records, tracker)
+    RAID_RUNNERS[raid_type](records, tracker)
+    recovery_time, fail_size = simulate_failure_and_recovery(records, tracker)
     metrics = tracker.finalize(recovery_time, raid_type)
+
+    return metrics, analysis, recovery_time, fail_size
+
+
+def run_simulation(file_path, raid_type, step=5):
+    lines = read_log_file(file_path)
+
+    metrics, analysis, _, _ = run_once(lines, raid_type)
 
     base = os.path.splitext(os.path.basename(file_path))[0]
     csv_path = os.path.join(
@@ -45,20 +52,7 @@ def run_simulation(file_path, raid_type, step=5):
     sizes, times = [], []
 
     for size in range(step, len(lines) + 1, step):
-        records = parse_logs(lines[:size])
-        analysis = analyze_io(records)
-        tracker = performance_tracker(analysis["total_ops"])
-
-        if raid_type == "RAID1":
-            run_raid1(records, tracker)
-        elif raid_type == "RAID5":
-            run_raid5(records, tracker)
-        elif raid_type == "RAID6":
-            run_raid6(records, tracker)
-
-        rt, fs = simulate_failure_and_recovery(records, tracker)
-        tracker.finalize(rt, raid_type)
-
+        _, _, rt, fs = run_once(lines[:size], raid_type)
         sizes.append(fs)
         times.append(rt)
 
