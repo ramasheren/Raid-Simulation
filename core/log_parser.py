@@ -10,7 +10,7 @@ def parse_logs(lines):
             continue
 
         io_type = "READ" if index % 2 == 0 else "WRITE"
-        size = 4096
+        size = len(line) 
         timestamp = base_time + timedelta(seconds=index)
 
         records.append({

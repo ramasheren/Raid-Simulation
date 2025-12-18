@@ -1,41 +1,29 @@
 import gradio as gr
 import matplotlib.pyplot as plt
-from main import run_simulation, run_simulation_series
-
-
-def run_ui(file, raid_type):
-    # Single run (metrics + CSV)
-    metrics, csv_path, recovery_time, file_size = run_simulation(file.name, raid_type)
-
-    # Series run for line plot
-    sizes, times = run_simulation_series(file.name, raid_type)
-
-    # Plot
-    fig, ax = plt.subplots()
-    ax.plot(sizes, times, marker="o")
-    ax.set_xlabel("File Size (Records)")
-    ax.set_ylabel("Recovery Time (seconds)")
-    ax.set_title("Recovery Time vs File Size")
-
-    return metrics, fig, csv_path  # <-- CSV file for optional download
+from main import run_simulation
 
 
 def launch_ui():
+    def run(file, raid_type):
+        metrics, sizes, times, csv = run_simulation(file.name, raid_type)
+
+        fig, ax = plt.subplots()
+        ax.plot(sizes, times, marker="o")
+        ax.set_xlabel("File Size (Records)")
+        ax.set_ylabel("Recovery Time (seconds)")
+        ax.set_title("Recovery Time vs File Size")
+
+        return metrics, fig, csv
+
     with gr.Blocks(title="RAID Log Analyzer") as demo:
-        gr.Markdown("## Log File Analyzer & RAID Data Archiver")
+        file_input = gr.File(type="filepath")
+        raid = gr.Radio(["RAID1", "RAID5", "RAID6"], value="RAID5")
+        run_btn = gr.Button("Run")
 
-        file_input = gr.File(label="Upload .txt Log File", type="filepath")
-        raid_choice = gr.Radio(["RAID1", "RAID5", "RAID6"], label="Select RAID Type", value="RAID5")
-        run_button = gr.Button("Run Simulation")
+        out_json = gr.JSON()
+        out_plot = gr.Plot()
+        out_csv = gr.File()
 
-        metrics_output = gr.JSON(label="Performance Metrics")
-        plot_output = gr.Plot(label="Recovery Time vs File Size")
-        csv_download = gr.File(label="Download RAID Performance CSV")
+        run_btn.click(run, [file_input, raid], [out_json, out_plot, out_csv])
 
-        run_button.click(
-            run_ui,
-            inputs=[file_input, raid_choice],
-            outputs=[metrics_output, plot_output, csv_download]
-        )
-
-    demo.launch( share=True)
+    demo.launch(share=True)
