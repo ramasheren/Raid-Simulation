@@ -15,29 +15,22 @@ from core.raid.raid6 import run_raid6
 from core.raid.recovery import simulate_failure_and_recovery
 
 
-RAID_RUNNERS = {
-    "RAID1": run_raid1,
-    "RAID5": run_raid5,
-    "RAID6": run_raid6,
-}
-
-
-def run_once(lines, raid_type):
+def run_simulation(file_path, raid_type, step=5):
+    lines = read_log_file(file_path)
     records = parse_logs(lines)
+
     analysis = analyze_io(records)
     tracker = performance_tracker(analysis["total_ops"])
 
-    RAID_RUNNERS[raid_type](records, tracker)
-    recovery_time, fail_size = simulate_failure_and_recovery(records, tracker)
+    if raid_type == "RAID1":
+        run_raid1(records, tracker)
+    elif raid_type == "RAID5":
+        run_raid5(records, tracker)
+    elif raid_type == "RAID6":
+        run_raid6(records, tracker)
+
+    recovery_time, file_size = simulate_failure_and_recovery(records, tracker)
     metrics = tracker.finalize(recovery_time, raid_type)
-
-    return metrics, analysis, recovery_time, fail_size
-
-
-def run_simulation(file_path, raid_type, step=5):
-    lines = read_log_file(file_path)
-
-    metrics, analysis, _, _ = run_once(lines, raid_type)
 
     base = os.path.splitext(os.path.basename(file_path))[0]
     csv_path = os.path.join(
@@ -49,10 +42,24 @@ def run_simulation(file_path, raid_type, step=5):
 
     display_metrics = metrics | {"daily_avg": analysis.get("daily_avg", {})}
 
-    sizes, times = [], []
+    sizes = []
+    times = []
 
     for size in range(step, len(lines) + 1, step):
-        _, _, rt, fs = run_once(lines[:size], raid_type)
+        sub_records = parse_logs(lines[:size])
+        analysis = analyze_io(sub_records)
+        tracker = performance_tracker(analysis["total_ops"])
+
+        if raid_type == "RAID1":
+            run_raid1(sub_records, tracker)
+        elif raid_type == "RAID5":
+            run_raid5(sub_records, tracker)
+        elif raid_type == "RAID6":
+            run_raid6(sub_records, tracker)
+
+        rt, fs = simulate_failure_and_recovery(sub_records, tracker)
+        tracker.finalize(rt, raid_type)
+
         sizes.append(fs)
         times.append(rt)
 
