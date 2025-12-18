@@ -6,7 +6,7 @@ from datetime import datetime
 from core.log_reader import read_log_file
 from core.log_parser import parse_logs
 from core.analyzer import analyze_io
-from core.metrics import PerformanceTracker
+from core.metrics import performance_tracker
 from core.exporter import export_csv
 
 from core.raid.raid1 import run_raid1
@@ -20,7 +20,7 @@ def run_simulation(file_path, raid_type, step=5):
 
     records = parse_logs(lines)
     analysis = analyze_io(records)
-    tracker = PerformanceTracker(analysis["total_ops"])
+    tracker = performance_tracker(analysis["total_ops"])
 
     if raid_type == "RAID1":
         run_raid1(records, tracker)
@@ -47,7 +47,7 @@ def run_simulation(file_path, raid_type, step=5):
     for size in range(step, len(lines) + 1, step):
         records = parse_logs(lines[:size])
         analysis = analyze_io(records)
-        tracker = PerformanceTracker(analysis["total_ops"])
+        tracker = performance_tracker(analysis["total_ops"])
 
         if raid_type == "RAID1":
             run_raid1(records, tracker)

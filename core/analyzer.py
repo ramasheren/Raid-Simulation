@@ -1,5 +1,5 @@
-from collections import defaultdict
 import math
+from collections import defaultdict
 
 def analyze_io(records):
     total_reads = 0
@@ -9,23 +9,26 @@ def analyze_io(records):
 
     for rec in records:
         size = rec["size"]
-        ops_count = max(1, math.ceil(size / 4096)) 
+        ops_count =size / 4096
         total_ops += size
-        daily_counts[rec["date"]]["ops"] += ops_count
+
+        day_counts = daily_counts[rec["date"]]
+        day_counts["ops"] += ops_count
 
         if rec["type"] == "READ":
             total_reads += size
-            daily_counts[rec["date"]]["reads"] += size
-        elif rec["type"] == "WRITE":
+            day_counts["reads"] += size
+        else:
             total_writes += size
-            daily_counts[rec["date"]]["writes"] += size
+            day_counts["writes"] += size
 
     daily_avg = {}
     for day, counts in daily_counts.items():
-        num_ops = counts["ops"] or 1
+        avg_read = counts["reads"] / counts["ops"]
+        avg_write = counts["writes"] / counts["ops"]
         daily_avg[str(day)] = {
-            "avg_read": counts["reads"] / num_ops,
-            "avg_write": counts["writes"] / num_ops
+            "avg_read": avg_read,
+            "avg_write": avg_write
         }
 
     return {
@@ -34,4 +37,3 @@ def analyze_io(records):
         "total_ops": total_ops,
         "daily_avg": daily_avg
     }
-
