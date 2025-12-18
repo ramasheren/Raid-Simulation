@@ -28,5 +28,5 @@ def launch_ui():
         out_csv = gr.File(label="Download CSV")
         run_btn.click(run, [file_input, raid], [out_table, out_plot, out_csv])
 
-    demo.launch(share=False)
+    demo.launch(share=True)
 
