@@ -17,15 +17,17 @@ def _read_block(block, tracker):
 def run_raid1(records, tracker):
     threads = []
     for r in records:
-        t = threading.Thread(target=_write_block, args=(r, tracker))
-        t.start()
-        threads.append(t)
+        if(r["type"]=="READ"):
+            t = threading.Thread(target=_write_block, args=(r, tracker))
+            t.start()
+            threads.append(t)
     for t in threads:
         t.join()
     threads = []
     for r in records:
-        t = threading.Thread(target=_read_block, args=(r, tracker))
-        t.start()
-        threads.append(t)
+        if(r["type"]=="WRITE"):
+            t = threading.Thread(target=_read_block, args=(r, tracker))
+            t.start()
+            threads.append(t)
     for t in threads:
         t.join()

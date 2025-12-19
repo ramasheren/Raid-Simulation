@@ -21,26 +21,35 @@ def xor_block(a, b):
 def run_raid6(records, tracker, disks=4):
     stripe_len = disks - 2
     threads = []
+
     for i in range(0, len(records), stripe_len):
-        stripe = records[i:i + stripe_len]
-        while len(stripe) < stripe_len:
-            stripe.append(0)
-        p = stripe[0]
-        q = stripe[1] if len(stripe) > 1 else p
+        if records[i]["type"] != "WRITE":
+            continue
+
+        stripe = records[i:i + stripe_len]     
+
+        stripe += [0] * (stripe_len - len(stripe))
+        p, q = stripe[0], stripe[1] 
+        
         for blk in stripe[2:]:
             p = xor_block(p, blk)
             q = xor_block(q, blk)
-        stripe += [p, q]
-        for blk in stripe:
+
+        for blk in stripe + [p, q]:
             t = threading.Thread(target=_write_block, args=(blk, tracker))
             t.start()
             threads.append(t)
+
     for t in threads:
         t.join()
-    threads = []
+
+    threads.clear()
+
     for r in records:
-        t = threading.Thread(target=_read_block, args=(r, tracker))
-        t.start()
-        threads.append(t)
+        if r["type"] == "READ":
+            t = threading.Thread(target=_read_block, args=(r, tracker))
+            t.start()
+            threads.append(t)
+
     for t in threads:
         t.join()

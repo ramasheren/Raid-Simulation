@@ -6,11 +6,9 @@ class performance_tracker:
 
     def track_read(self, duration: float):
         self.read_times += duration
-        self.total_ops += 1
 
     def track_write(self, duration: float):
         self.write_times += duration
-        self.total_ops += 1
 
     def finalize(self, recovery_time: float, raid_type: str) -> dict:
         total_time = self.read_times + self.write_times

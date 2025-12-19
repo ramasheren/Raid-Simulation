@@ -27,7 +27,17 @@ def run_simulation(file_path, raid_type, step=5):
         run_raid5(records, tracker)
     elif raid_type == "RAID6":
         run_raid6(records, tracker)
+        
+    def read_write_ratio(records):
+        read=0
+        write=0
+        for r in records:
+            if r["type"]=="READ": read+=1 
+            else: write+=1
+        return f"{read}:{write}"
 
+    ratio = read_write_ratio(records)
+    
     recovery_time, file_size = simulate_failure_and_recovery(records, tracker)
     metrics = tracker.finalize(recovery_time, raid_type)
 
@@ -59,7 +69,7 @@ def run_simulation(file_path, raid_type, step=5):
         sizes.append(fs)
         times.append(rt)
 
-    return display_metrics, sizes, times, csv_path
+    return display_metrics, sizes, times, csv_path, ratio
 
 
 if __name__ == "__main__":

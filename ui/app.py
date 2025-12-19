@@ -1,13 +1,18 @@
 import gradio as gr
 import matplotlib.pyplot as plt
-from main import run_simulation
 import pandas as pd
+import json
+from main import run_simulation
 
 def launch_ui():
     def run(file, raid_type):
         try:
-            metrics, sizes, times, csv_path = run_simulation(file.name, raid_type)
-            df_metrics = pd.DataFrame(list(metrics.items()), columns=["Metric", "Value"])
+            metrics, sizes, times, csv_path, ratio = run_simulation(file.name, raid_type)
+            rows = [{"Metric": k, "Value": json.dumps(v, indent=2) if isinstance(v, dict) else v} for k, v in metrics.items()]
+            rows.append({"Metric": "Read/Write Ratio", "Value": ratio})
+            rows.append({"Metric": "Total Records", "Value": sum(sizes)})
+            rows.append({"Metric": "Average Recovery Time (s)", "Value": round(sum(times)/len(times), 3)})
+            df_metrics = pd.DataFrame(rows)
             fig, ax = plt.subplots(figsize=(6,4))
             ax.plot(sizes, times, marker="o")
             ax.set_xlabel("File Size (Records)")
@@ -29,4 +34,3 @@ def launch_ui():
         run_btn.click(run, [file_input, raid], [out_table, out_plot, out_csv])
 
     demo.launch(share=True)
-

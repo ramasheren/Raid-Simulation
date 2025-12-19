@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import random
 
 def parse_logs(lines):
     records = []
@@ -8,8 +9,9 @@ def parse_logs(lines):
         line = line.strip()
         if not line:
             continue
-
-        io_type = "READ" if index % 2 == 0 else "WRITE"
+        
+        rand_val = random.randint(1,2)
+        io_type = "READ" if rand_val == 1 else "WRITE"
         size = len(line) 
         timestamp = base_time + timedelta(seconds=index)
 
