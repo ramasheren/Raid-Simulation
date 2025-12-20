@@ -1,55 +1,64 @@
 import threading
-import time
 
-def _write_block(block, tracker, penalty=6):
+def _write_block(record, tracker, penalty=6):
     for _ in range(penalty):
-        delay = 0.0002 * len(str(block))
-        time.sleep(delay)
+        delay = 0.0002 * len(str(record))
         tracker.track_write(delay)
         tracker.total_ops += 1
 
-def _read_block(block, tracker):
+def _read_block(record, tracker):
     delay = 0.0001
-    time.sleep(delay)
     tracker.track_read(delay)
     tracker.total_ops += 1
 
-def xor_block(a, b):
-    a, b = str(a).encode(), str(b).encode()
+def xor_bytes(a: bytes, b: bytes) -> bytes:
     return bytes(x ^ y for x, y in zip(a, b))
 
-def run_raid6(records, tracker, disks=4):
-    stripe_len = disks - 2
+def run_raid6(records, tracker, disks=10):
+    usable = max(1, disks - 2)  
     threads = []
+    disk_blocks = [[] for _ in range(disks)]
 
-    for i in range(0, len(records), stripe_len):
-        if records[i]["type"] != "WRITE":
-            continue
+    def worker(tid):
+        for i, record in enumerate(records):
+            if i % usable != tid:
+                continue
 
-        stripe = records[i:i + stripe_len]     
+            stripe_index = i // usable
+            parity_disk_p = stripe_index % disks
+            parity_disk_q = (parity_disk_p + 1) % disks
+            data_disk = i % usable
+            if data_disk >= parity_disk_p:
+                data_disk += 1
+            if data_disk >= parity_disk_q:
+                data_disk += 1
 
-        stripe += [0] * (stripe_len - len(stripe))
-        p, q = stripe[0], stripe[1] 
-        
-        for blk in stripe[2:]:
-            p = xor_block(p, blk)
-            q = xor_block(q, blk)
+            block = record["data"].encode() if "data" in record else b""
 
-        for blk in stripe + [p, q]:
-            t = threading.Thread(target=_write_block, args=(blk, tracker))
-            t.start()
-            threads.append(t)
+            if record["type"] == "READ":
+                _read_block(record, tracker)
+            elif record["type"] == "WRITE":
+                # write data
+                disk_blocks[data_disk].append(block)
+                _write_block(record, tracker)
 
-    for t in threads:
-        t.join()
+                data_blocks = [disk_blocks[d][-1] for d in range(disks)
+                               if d != parity_disk_p and d != parity_disk_q and disk_blocks[d]]
+                if data_blocks:
+                    parity_p = data_blocks[0]
+                    for blk in data_blocks[1:]:
+                        parity_p = xor_bytes(parity_p, blk)
+                    disk_blocks[parity_disk_p].append(parity_p)
+                    _write_block(record, tracker)
 
-    threads.clear()
+                    parity_q = bytes(((b + 1) % 256) for b in parity_p) 
+                    disk_blocks[parity_disk_q].append(parity_q)
+                    _write_block(record, tracker)
 
-    for r in records:
-        if r["type"] == "READ":
-            t = threading.Thread(target=_read_block, args=(r, tracker))
-            t.start()
-            threads.append(t)
+    for tid in range(usable):
+        t = threading.Thread(target=worker, args=(tid,))
+        t.start()
+        threads.append(t)
 
     for t in threads:
         t.join()
