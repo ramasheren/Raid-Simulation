@@ -5,9 +5,9 @@ import json
 from main import run_simulation
 
 def launch_ui():
-    def run(file, raid_type):
+    def run(file, raid_type, disks):
         try:
-            metrics, sizes, times, csv_path, ratio = run_simulation(file.name, raid_type)
+            metrics, sizes, times, csv_path, ratio = run_simulation(file.name, raid_type, disks)
             rows = [{"Metric": k, "Value": json.dumps(v, indent=2) if isinstance(v, dict) else v} for k, v in metrics.items()]
             rows.append({"Metric": "Read/Write Ratio", "Value": ratio})
             rows.append({"Metric": "Total Records", "Value": sum(sizes)})
@@ -27,10 +27,11 @@ def launch_ui():
         gr.Markdown("## Upload a log file and select RAID type")
         file_input = gr.File(type="filepath")
         raid = gr.Radio(["RAID1", "RAID5", "RAID6"], value="RAID5", label="RAID Type")
+        disks = gr.Slider(2, 10, value=5, step=1, label="Number of disks")
         run_btn = gr.Button("Run Simulation")
         out_table = gr.Dataframe(headers=["Metric", "Value"], label="Metrics Table")
         out_plot = gr.Plot(label="Recovery Time Plot")
         out_csv = gr.File(label="Download CSV")
-        run_btn.click(run, [file_input, raid], [out_table, out_plot, out_csv])
+        run_btn.click(run, [file_input, raid, disks], [out_table, out_plot, out_csv])
 
     demo.launch(share=True)

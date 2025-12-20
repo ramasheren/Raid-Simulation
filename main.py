@@ -15,7 +15,7 @@ from core.raid.raid6 import run_raid6
 from core.raid.recovery import simulate_failure_and_recovery
 
 
-def run_simulation(file_path, raid_type, step=5):
+def run_simulation(file_path, raid_type, disks, step=5):
     lines = read_log_file(file_path)
     records = parse_logs(lines)
     analysis = analyze_io(records)
@@ -57,11 +57,11 @@ def run_simulation(file_path, raid_type, step=5):
         tracker = performance_tracker(analysis["total_ops"])
 
         if raid_type == "RAID1":
-            run_raid1(sub_records, tracker)
+            run_raid1(sub_records, tracker, disks)
         elif raid_type == "RAID5":
-            run_raid5(sub_records, tracker)
+            run_raid5(sub_records, tracker, disks)
         elif raid_type == "RAID6":
-            run_raid6(sub_records, tracker)
+            run_raid6(sub_records, tracker, disks)
 
         rt, fs = simulate_failure_and_recovery(sub_records, tracker)
         tracker.finalize(rt, raid_type)
